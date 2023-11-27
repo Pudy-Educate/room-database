@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "440000669427",
+    "project_id": "mobfirebase-6ade1",
+    "storage_bucket": "mobfirebase-6ade1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:440000669427:android:fe2687fadbab169b61b986",
+        "android_client_info": {
+          "package_name": "com.example.crudroom2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFajF2oQvIQxENy277ccV06C6gXcMU_ic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:440000669427:android:1df9481c846bf20e61b986",
+        "android_client_info": {
+          "package_name": "com.example.firebaseexample"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFajF2oQvIQxENy277ccV06C6gXcMU_ic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

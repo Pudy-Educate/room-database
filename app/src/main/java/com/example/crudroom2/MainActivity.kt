@@ -4,21 +4,24 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.crudroom2.database.Note
-import com.example.crudroom2.database.NoteDB
 import com.example.crudroom2.databinding.ActivityMainBinding
+import com.example.crudroom2.firebase.Pengaduan
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
+    private val firestore = FirebaseFirestore.getInstance()
+    private val pengaduanCollectionRef = firestore.collection("pengaduans")
     private lateinit var binding: ActivityMainBinding
-    private val db by lazy { NoteDB(this) }
     private lateinit var noteAdapter: NoteAdapter
+    private val pengaduanListLiveData: MutableLiveData<List<Pengaduan>> by lazy {
+        MutableLiveData<List<Pengaduan>>()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -26,6 +29,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupListener()
         setupRecyclerView()
+        observeBudgets()
     }
 
 
@@ -34,39 +38,47 @@ class MainActivity : AppCompatActivity() {
         loadNote()
     }
 
-    fun loadNote(){
-        CoroutineScope(Dispatchers.IO).launch {
-            val notes = db.noteDao().getAllNotes()
-            Log.d("Main","DBres : $notes")
-            withContext(Dispatchers.Main){
-                noteAdapter.setData(notes)
+    private fun observeBudgets() {
+        pengaduanListLiveData.observe(this) { pengaduan ->
+            noteAdapter.setData(pengaduan.toMutableList())
+        }
+    }
+    private fun loadNote(){
+        pengaduanCollectionRef.addSnapshotListener { snapshots, error ->
+            if (error != null) {
+                Log.d("MainActivity", "Error listening for budget changes: ", error)
+                return@addSnapshotListener
+            }
+            val item = snapshots?.toObjects(Pengaduan::class.java)
+            if (item != null) {
+                pengaduanListLiveData.postValue(item)
             }
         }
     }
-    private fun intentEdit(id:Int, intentType:Int){
+    private fun intentEdit(id:String, intentType:Int){
         startActivity(Intent(this@MainActivity,EditActivity::class.java).putExtra("id",id).putExtra("intentType",intentType))
     }
 
     private fun setupListener(){
         with(binding){
             buttonCreate.setOnClickListener{
-                intentEdit(0,1)
+                intentEdit("0",1)
             }
         }
     }
 
     private fun setupRecyclerView(){
         noteAdapter = NoteAdapter(arrayListOf(),object :NoteAdapter.OnAdapterListener{
-            override fun onClick(note: Note) {
-                intentEdit(note.id,0)
+            override fun onClick(pengaduan: Pengaduan) {
+                intentEdit(pengaduan.id,0)
             }
 
-            override fun onUpdate(note: Note) {
-                intentEdit(note.id,2)
+            override fun onUpdate(pengaduan: Pengaduan) {
+                intentEdit(pengaduan.id,2)
             }
 
-            override fun onDelete(note: Note) {
-                deleteDialog(note)
+            override fun onDelete(pengaduan: Pengaduan) {
+                deleteDialog(pengaduan)
             }
 
         })
@@ -77,8 +89,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
-    private fun deleteDialog(note: Note){
+    private fun deletePengaduan(pengaduan: Pengaduan) {
+        if (pengaduan.id.isEmpty()) {
+            Log.d("MainActivity", "Error deleting: budget ID is empty!")
+            return
+        }
+        pengaduanCollectionRef.document(pengaduan.id).delete()
+            .addOnFailureListener {
+                Log.d("MainActivity", "Error deleting budget: ", it)
+            }
+    }
+    private fun deleteDialog(pengaduan: Pengaduan){
         val alertDialog=AlertDialog.Builder(this)
         alertDialog.apply {
             setTitle("Konfirmasi")
@@ -88,10 +109,7 @@ class MainActivity : AppCompatActivity() {
             }
             setPositiveButton("Hapus"){dialogInterface,i->
                 dialogInterface.dismiss()
-                CoroutineScope(Dispatchers.IO).launch {
-                    db.noteDao().deleteNote(note)
-                    loadNote()
-                }
+                deletePengaduan(pengaduan)
             }
         }
         alertDialog.show()
